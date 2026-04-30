@@ -1,17 +1,18 @@
-import React from "react";
 import { useNavigate } from "react-router-dom";
 
 function Dashboard() {
   const navigate = useNavigate();
 
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    navigate("/login");
+  };
+
   return (
     <div className="container">
-      <h2>Welcome to Dashboard 🎉</h2>
-      <p>You are successfully logged in.</p>
-
-      <button onClick={() => navigate("/login")}>
-        Logout
-      </button>
+      <h2>Welcome to Dashboard!</h2>
+      <p>You are logged in.</p>
+      <button onClick={handleLogout}>Logout</button>
     </div>
   );
 }

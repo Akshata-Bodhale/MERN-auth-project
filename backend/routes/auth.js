@@ -3,20 +3,19 @@ const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 
 const router = express.Router();
-
+const jwt = require("jsonwebtoken");
 
 // ✅ SIGN UP
 router.post("/signup", async (req, res) => {
   const { firstName, lastName, email, password } = req.body;
 
-  // 🔍 Validation
   if (!firstName || !lastName || !email || !password) {
     return res.status(400).json({ message: "All fields are required" });
   }
 
   try {
-    // 🔍 Check existing user
-    const existingUser = await User.findOne({ email });
+    // 🔍 Normalize email (IMPORTANT FIX)
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
 
     if (existingUser) {
       return res.status(400).json({
@@ -24,14 +23,12 @@ router.post("/signup", async (req, res) => {
       });
     }
 
-    // 🔐 Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // ✅ Create user
     const newUser = new User({
       firstName,
       lastName,
-      email,
+      email: email.toLowerCase(),   // ✅ FIX
       password: hashedPassword
     });
 
@@ -54,14 +51,13 @@ router.post("/signup", async (req, res) => {
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
-  // 🔍 Validation
   if (!email || !password) {
     return res.status(400).json({ message: "All fields are required" });
   }
 
   try {
-    // 🔍 Find user
-    const user = await User.findOne({ email });
+    // 🔍 Normalize email (IMPORTANT FIX)
+    const user = await User.findOne({ email: email.toLowerCase() });
 
     if (!user) {
       return res.status(400).json({
@@ -72,6 +68,11 @@ router.post("/login", async (req, res) => {
     // 🔐 Compare password
     const isMatch = await bcrypt.compare(password, user.password);
 
+    // 🧪 Debug (you can remove later)
+    console.log("Entered Password:", password);
+    console.log("Stored Hash:", user.password);
+    console.log("Match:", isMatch);
+
     if (!isMatch) {
       return res.status(400).json({
         message: "Invalid password"
@@ -80,7 +81,8 @@ router.post("/login", async (req, res) => {
 
     // ✅ Success
     res.status(200).json({
-      message: "Login successful"
+     message: "Login successful",
+  token: jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1d" })
     });
 
   } catch (err) {
